@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant POS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 p-6">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">Restaurant POS</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Menu -->
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Menu</h2>
+        <div id="menu" class="space-y-4"></div>
+      </div>
+
+      <!-- Cart -->
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Cart</h2>
+        <div id="cart" class="space-y-2"></div>
+        <div class="mt-4">
+          <p class="font-bold">Total: $<span id="total">0.00</span></p>
+          <button onclick="checkout()" class="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Checkout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const menuItems = [
+      { id: 1, name: 'Chicken Burger', price: 8.99 },
+      { id: 2, name: 'Veggie Pizza', price: 12.5 },
+      { id: 3, name: 'Coke', price: 2.5 },
+      { id: 4, name: 'French Fries', price: 4.0 },
+    ];
+
+    const cart = [];
+
+    function renderMenu() {
+      const menuDiv = document.getElementById('menu');
+      menuItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center bg-white p-4 rounded shadow';
+        div.innerHTML = `
+          <span>${item.name} - $${item.price.toFixed(2)}</span>
+          <button class="bg-blue-500 text-white px-3 py-1 rounded" onclick="addToCart(${item.id})">Add</button>
+        `;
+        menuDiv.appendChild(div);
+      });
+    }
+
+    function addToCart(id) {
+      const item = menuItems.find(m => m.id === id);
+      const existing = cart.find(c => c.id === id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ ...item, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function removeFromCart(id) {
+      const index = cart.findIndex(c => c.id === id);
+      if (index > -1) {
+        cart.splice(index, 1);
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartDiv = document.getElementById('cart');
+      cartDiv.innerHTML = '';
+      let total = 0;
+
+      cart.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center bg-white p-3 rounded shadow';
+        const subtotal = item.qty * item.price;
+        total += subtotal;
+        div.innerHTML = `
+          <span>${item.name} x ${item.qty} = $${subtotal.toFixed(2)}</span>
+          <button class="text-red-500" onclick="removeFromCart(${item.id})">Remove</button>
+        `;
+        cartDiv.appendChild(div);
+      });
+
+      document.getElementById('total').textContent = total.toFixed(2);
+    }
+
+    function checkout() {
+      if (cart.length === 0) return alert('Cart is empty');
+      let receipt = 'Receipt\n';
+      cart.forEach(item => {
+        receipt += `${item.name} x${item.qty} = $${(item.price * item.qty).toFixed(2)}\n`;
+      });
+      receipt += `Total: $${document.getElementById('total').textContent}`;
+      alert(receipt);
+      cart.length = 0;
+      renderCart();
+    }
+
+    renderMenu();
+  </script>
+</body>
+</html>
