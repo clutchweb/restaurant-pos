@@ -1,199 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Titanic - POS</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f1f1f1;
-    }
-    header {
-      background: #2c3e50;
-      color: white;
-      padding: 30px;
-      text-align: center;
-      font-size: 3em;
-      font-weight: bold;
-    }
-    .container {
-      display: flex;
-      flex-direction: row;
-      gap: 20px;
-      padding: 20px;
-      max-width: 100%;
-      margin: auto;
-    }
-    .left-panel {
-      flex: 3;
-    }
-    .right-panel {
-      flex: 1;
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-    }
-    .categories, .checkout {
+<style>
+    .item-box,
+    .modal-content {
       margin-top: 20px;
-    }
-    .category-btn {
-      padding: 15px 20px;
-      font-size: 1.2em;
-      margin: 5px;
-      border: none;
-      border-radius: 6px;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-    .item-btn {
-      padding: 10px 15px;
-      font-size: 1em;
-      margin: 4px;
-      border: none;
-      border-radius: 6px;
-      color: white;
-      cursor: pointer;
-    }
-    .item-list {
-      display: flex;
-      flex-wrap: wrap;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border-bottom: 1px solid #ddd;
+      background: #fff;
       padding: 10px;
-      text-align: left;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: relative;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: all 0.3s ease-in-out;
     }
-    .remove-btn {
-      background: red;
+    .item-box.show,
+    .modal-content.show {
+      display: block !important;
+      opacity: 1;
+      transform: scale(1);
+    }
+    .discount-btn {
+      background-color: #2ecc71;
       color: white;
       border: none;
       border-radius: 4px;
-      padding: 3px 6px;
-      cursor: pointer;
-    }
-    input, select, button {
-      padding: 8px;
-      margin: 5px 0;
-      width: 100%;
-    }
-    .manual-toggle {
-      float: right;
-      font-size: 2em;
-      cursor: pointer;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 90%;
-      position: relative;
-    }
-    .close-btn {
-      position: absolute;
-      top: 10px; right: 15px;
+      padding: 4px 8px;
       font-size: 1.2em;
       cursor: pointer;
-      color: red;
+      float: right;
+      margin-top: -10px;
     }
-  </style>
-</head>
-<body>
-  <header>The Titanic</header>
-  <div class="container">
-    <div class="left-panel">
-      <div class="categories">
-        <h2>Categories <span class="manual-toggle" onclick="openManualEntry()">＋</span></h2>
-        <div id="categoryButtons"></div>
-      </div>
-      <div class="item-list" id="itemButtons"></div>
-    </div>
-
-    <div class="right-panel">
-      <div class="cart">
-        <h2>Cart</h2>
-        <table>
-          <thead><tr><th>Item</th><th>Price</th><th></th></tr></thead>
-          <tbody id="cartItems"></tbody>
-          <tfoot><tr><td><strong>Total</strong></td><td id="totalAmount">$0.00</td><td></td></tr></tfoot>
-        </table>
-      </div>
-      <div class="checkout">
-        <h2>Checkout</h2>
-        <select id="paymentMethod">
-          <option value="Cash">Cash</option>
-          <option value="Card">Card</option>
-        </select>
-        <div id="cashInputContainer" class="modal">
-          <div class="modal-content">
-            <span class="close-btn" onclick="closeCashInput()">✖</span>
-            <h2>Enter Cash Given</h2>
-            <input type="number" id="cashGiven" placeholder="Cash Given" />
-            <button onclick="finalizeCheckout()">Confirm</button>
-          </div>
-        </div>
-        <button onclick="checkout()">Checkout</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal" id="manualModal">
-    <div class="modal-content">
-      <span class="close-btn" onclick="closeManualEntry()">✖</span>
-      <h2>Add Manual Item</h2>
-      <input type="text" id="manualName" placeholder="Item Name" />
-      <input type="number" id="manualPrice" placeholder="Price" />
-      <button onclick="addManualItem()">Add to Menu</button>
-    </div>
-  </div>
-
-  <script>
-    const categoryColors = ["#3498db", "#e74c3c", "#9b59b6", "#1abc9c", "#f39c12", "#2ecc71", "#e67e22", "#34495e", "#7f8c8d", "#d35400"];
-    const items = {};
-    for (let i = 1; i <= 10; i++) {
-      const cat = `Category ${i}`;
-      items[cat] = [];
-      for (let j = 1; j <= 10; j++) {
-        items[cat].push({ name: `Item ${i}-${j}`, price: (j + i).toFixed(2), color: categoryColors[i % categoryColors.length] });
-      }
-    }
-    let cart = [];
+</style>
+<script>
     let currentCategory = '';
-
-    function renderCategories() {
-      const catDiv = document.getElementById('categoryButtons');
-      catDiv.innerHTML = '';
-      Object.keys(items).forEach((category, index) => {
-        const btn = document.createElement('button');
-        btn.textContent = category;
-        btn.className = 'category-btn';
-        btn.style.backgroundColor = categoryColors[index % categoryColors.length];
-        btn.onclick = () => showItems(category, categoryColors[index % categoryColors.length]);
-        catDiv.appendChild(btn);
-      });
-    }
+    let cart = [];
+    let discountAmount = 0;
+    let discountType = 'fixed';
 
     function showItems(category, color) {
       currentCategory = category;
+      const box = document.getElementById('itemBox');
       const itemDiv = document.getElementById('itemButtons');
+      const title = document.getElementById('itemBoxTitle');
+      title.textContent = category;
       itemDiv.innerHTML = '';
       items[category].forEach(item => {
         const btn = document.createElement('button');
@@ -203,26 +50,65 @@
         btn.onclick = () => addToCart(item);
         itemDiv.appendChild(btn);
       });
+      box.style.display = 'block';
+      requestAnimationFrame(() => box.classList.add('show'));
     }
 
-    function addManualItem() {
-      const name = document.getElementById('manualName').value;
-      const price = parseFloat(document.getElementById('manualPrice').value);
-      if (!name || isNaN(price)) return alert('Enter valid name and price');
-      if (!items['Manual']) items['Manual'] = [];
-      items['Manual'].push({ name, price, color: "#666" });
-      closeManualEntry();
-      renderCategories();
-      showItems('Manual', '#666');
+    function closeItemBox() {
+      const box = document.getElementById('itemBox');
+      box.classList.remove('show');
+      setTimeout(() => box.style.display = 'none', 300);
     }
 
-    function addToCart(item) {
-      cart.push(item);
-      updateCart();
+    function openManualEntry() {
+      const modal = document.getElementById('manualModal');
+      const content = modal.querySelector('.modal-content');
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => content.classList.add('show'));
     }
 
-    function removeFromCart(index) {
-      cart.splice(index, 1);
+    function closeManualEntry() {
+      const modal = document.getElementById('manualModal');
+      const content = modal.querySelector('.modal-content');
+      content.classList.remove('show');
+      setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    function checkout() {
+      const method = document.getElementById('paymentMethod').value;
+      if (cart.length === 0) return alert('Cart is empty');
+      if (method === 'Cash') {
+        const modal = document.getElementById('cashInputContainer');
+        const content = modal.querySelector('.modal-content');
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => content.classList.add('show'));
+      } else {
+        generateReceipt('Card', 0);
+      }
+    }
+
+    function closeCashInput() {
+      const modal = document.getElementById('cashInputContainer');
+      const content = modal.querySelector('.modal-content');
+      content.classList.remove('show');
+      setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    function openDiscountPrompt() {
+      const type = prompt("Type 'amount' for fixed discount or '%' for percentage:");
+      if (!type) return;
+      const value = prompt("Enter discount value:");
+      const num = parseFloat(value);
+      if (!isNaN(num) && num > 0) {
+        discountAmount = num;
+        discountType = type.includes('%') ? 'percent' : 'fixed';
+        updateCart();
+      }
+    }
+
+    function resetDiscount() {
+      discountAmount = 0;
+      discountType = 'fixed';
       updateCart();
     }
 
@@ -236,37 +122,14 @@
         cartBody.appendChild(row);
         total += parseFloat(item.price);
       });
-      document.getElementById('totalAmount').innerText = `$${total.toFixed(2)}`;
-    }
-
-    function openManualEntry() {
-      document.getElementById('manualModal').style.display = 'flex';
-    }
-
-    function closeManualEntry() {
-      document.getElementById('manualModal').style.display = 'none';
-    }
-
-    function checkout() {
-      const method = document.getElementById('paymentMethod').value;
-      if (cart.length === 0) return alert('Cart is empty');
-      if (method === 'Cash') {
-        document.getElementById('cashInputContainer').style.display = 'flex';
-      } else {
-        generateReceipt('Card', 0);
+      let discountValue = 0;
+      if (discountAmount > 0) {
+        discountValue = discountType === 'percent' ? total * (discountAmount / 100) : discountAmount;
+        const discountRow = document.createElement('tr');
+        discountRow.innerHTML = `<td><em>Discount (${discountType === 'percent' ? discountAmount + '%' : '$' + discountAmount.toFixed(2)})</em></td><td>-$${discountValue.toFixed(2)}</td><td><button class='remove-btn' onclick='resetDiscount()'>×</button></td>`;
+        cartBody.appendChild(discountRow);
       }
-    }
-
-    function closeCashInput() {
-      document.getElementById('cashInputContainer').style.display = 'none';
-    }
-
-    function finalizeCheckout() {
-      const cash = parseFloat(document.getElementById('cashGiven').value);
-      const total = cart.reduce((sum, i) => sum + parseFloat(i.price), 0);
-      if (isNaN(cash) || cash < total) return alert('Not enough cash given');
-      document.getElementById('cashInputContainer').style.display = 'none';
-      generateReceipt('Cash', cash - total);
+      document.getElementById('totalAmount').innerText = `$${Math.max(0, total - discountValue).toFixed(2)}`;
     }
 
     function generateReceipt(method, change) {
@@ -275,18 +138,25 @@
       let content = `<h1 style='text-align:center;'>The Titanic</h1><hr><pre>`;
       content += `Date: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n`;
       cart.forEach(item => content += `${item.name.padEnd(20)} $${parseFloat(item.price).toFixed(2)}\n`);
-      const total = cart.reduce((sum, i) => sum + parseFloat(i.price), 0);
-      content += `\nTotal:               $${total.toFixed(2)}\nPayment Method:      ${method}\n`;
+      let total = cart.reduce((sum, i) => sum + parseFloat(i.price), 0);
+      let discountLine = '';
+      let discountValue = 0;
+      if (discountAmount > 0) {
+        discountValue = discountType === 'percent' ? total * (discountAmount / 100) : discountAmount;
+        discountLine = `Discount (${discountType === 'percent' ? discountAmount + '%' : '$' + discountAmount.toFixed(2)}): -$${discountValue.toFixed(2)}\n`;
+        total -= discountValue;
+      }
+      content += `\n${discountLine}`;
+      content += `Total:               $${Math.max(0, total).toFixed(2)}\nPayment Method:      ${method}\n`;
       if (method === 'Cash') content += `Change:              $${change.toFixed(2)}\n`;
       content += `</pre><hr><p style='text-align:center;'>Thank you!</p>`;
       content += `<div style='text-align:center;'><button onclick='window.print()'>Print Receipt</button></div>`;
       win.document.write(content);
       win.document.close();
       cart = [];
+      discountAmount = 0;
+      discountType = 'fixed';
       updateCart();
     }
-
-    renderCategories();
-  </script>
-</body>
-</html>
+</script>
+<button class="discount-btn" onclick="openDiscountPrompt()">＋</button>
