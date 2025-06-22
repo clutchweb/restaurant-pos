@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simple POS Menu</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      color: #333;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+    .total {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>POS Menu</h1>
+  <div>
+    <input id="itemName" type="text" placeholder="Item Name" />
+    <input id="itemPrice" type="number" placeholder="Price" />
+    <button onclick="addItem()">Add Item</button>
+  </div>
+
+  <table id="menuTable">
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Price ($)</th>
+      </tr>
+    </thead>
+    <tbody id="menuBody"></tbody>
+    <tfoot>
+      <tr>
+        <td class="total">Total</td>
+        <td class="total" id="totalPrice">$0.00</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div>
+    <input id="splitCount" type="number" placeholder="Split between how many people?" min="1"/>
+    <button onclick="splitTotal()">Split Bill</button>
+    <p id="splitResult"></p>
+  </div>
+
+  <script>
+    let items = [];
+
+    function addItem() {
+      const name = document.getElementById("itemName").value.trim();
+      const price = parseFloat(document.getElementById("itemPrice").value);
+
+      if (!name || isNaN(price) || price < 0) {
+        alert("Enter a valid item and price.");
+        return;
+      }
+
+      items.push({ name, price });
+      updateMenu();
+      document.getElementById("itemName").value = '';
+      document.getElementById("itemPrice").value = '';
+    }
+
+    function updateMenu() {
+      const menuBody = document.getElementById("menuBody");
+      menuBody.innerHTML = '';
+      let total = 0;
+
+      items.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${item.name}</td><td>$${item.price.toFixed(2)}</td>`;
+        menuBody.appendChild(row);
+        total += item.price;
+      });
+
+      document.getElementById("totalPrice").innerText = `$${total.toFixed(2)}`;
+    }
+
+    function splitTotal() {
+      const splitCount = parseInt(document.getElementById("splitCount").value);
+      const total = items.reduce((sum, item) => sum + item.price, 0);
+
+      if (isNaN(splitCount) || splitCount < 1) {
+        alert("Enter a valid number of people.");
+        return;
+      }
+
+      const perPerson = total / splitCount;
+      document.getElementById("splitResult").innerText = `Each person pays: $${perPerson.toFixed(2)}`;
+    }
+  </script>
+</body>
+</html>
