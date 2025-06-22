@@ -20,9 +20,21 @@
       font-weight: bold;
     }
     .container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
       padding: 20px;
-      max-width: 1000px;
+      max-width: 100%;
       margin: auto;
+    }
+    .left-panel {
+      flex: 3;
+    }
+    .right-panel {
+      flex: 1;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
     }
     .categories, .checkout {
       margin-top: 20px;
@@ -33,7 +45,6 @@
       margin: 5px;
       border: none;
       border-radius: 6px;
-      background: #3498db;
       color: white;
       cursor: pointer;
       transition: 0.3s;
@@ -44,22 +55,12 @@
       margin: 4px;
       border: none;
       border-radius: 6px;
-      background: #2980b9;
       color: white;
       cursor: pointer;
-    }
-    .category-btn:hover, .item-btn:hover, button:hover {
-      background: #1c5980;
     }
     .item-list {
       display: flex;
       flex-wrap: wrap;
-    }
-    .cart {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      margin-top: 20px;
     }
     table {
       width: 100%;
@@ -71,10 +72,18 @@
       padding: 10px;
       text-align: left;
     }
-    input {
+    .remove-btn {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 6px;
+      cursor: pointer;
+    }
+    input, select, button {
       padding: 8px;
       margin: 5px 0;
-      width: calc(100% - 20px);
+      width: 100%;
     }
     .manual-toggle {
       float: right;
@@ -98,9 +107,6 @@
       width: 90%;
       position: relative;
     }
-    .modal-content h2 {
-      margin-top: 0;
-    }
     .close-btn {
       position: absolute;
       top: 10px; right: 15px;
@@ -113,37 +119,39 @@
 <body>
   <header>The Titanic</header>
   <div class="container">
-    <div class="categories">
-      <h2>Categories <span class="manual-toggle" onclick="openManualEntry()">＋</span></h2>
-      <div id="categoryButtons"></div>
-    </div>
-
-    <div class="item-list" id="itemButtons"></div>
-
-    <div class="cart">
-      <h2>Cart</h2>
-      <table>
-        <thead><tr><th>Item</th><th>Price</th></tr></thead>
-        <tbody id="cartItems"></tbody>
-        <tfoot><tr><td><strong>Total</strong></td><td id="totalAmount">$0.00</td></tr></tfoot>
-      </table>
-    </div>
-
-    <div class="checkout">
-      <h2>Checkout</h2>
-      <select id="paymentMethod">
-        <option value="Cash">Cash</option>
-        <option value="Card">Card</option>
-      </select>
-      <div id="cashInputContainer" class="modal">
-        <div class="modal-content">
-          <span class="close-btn" onclick="closeCashInput()">✖</span>
-          <h2>Enter Cash Given</h2>
-          <input type="number" id="cashGiven" placeholder="Cash Given" />
-          <button onclick="finalizeCheckout()">Confirm</button>
-        </div>
+    <div class="left-panel">
+      <div class="categories">
+        <h2>Categories <span class="manual-toggle" onclick="openManualEntry()">＋</span></h2>
+        <div id="categoryButtons"></div>
       </div>
-      <button onclick="checkout()">Checkout</button>
+      <div class="item-list" id="itemButtons"></div>
+    </div>
+
+    <div class="right-panel">
+      <div class="cart">
+        <h2>Cart</h2>
+        <table>
+          <thead><tr><th>Item</th><th>Price</th><th></th></tr></thead>
+          <tbody id="cartItems"></tbody>
+          <tfoot><tr><td><strong>Total</strong></td><td id="totalAmount">$0.00</td><td></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="checkout">
+        <h2>Checkout</h2>
+        <select id="paymentMethod">
+          <option value="Cash">Cash</option>
+          <option value="Card">Card</option>
+        </select>
+        <div id="cashInputContainer" class="modal">
+          <div class="modal-content">
+            <span class="close-btn" onclick="closeCashInput()">✖</span>
+            <h2>Enter Cash Given</h2>
+            <input type="number" id="cashGiven" placeholder="Cash Given" />
+            <button onclick="finalizeCheckout()">Confirm</button>
+          </div>
+        </div>
+        <button onclick="checkout()">Checkout</button>
+      </div>
     </div>
   </div>
 
@@ -158,11 +166,13 @@
   </div>
 
   <script>
+    const categoryColors = ["#3498db", "#e74c3c", "#9b59b6", "#1abc9c", "#f39c12", "#2ecc71", "#e67e22", "#34495e", "#7f8c8d", "#d35400"];
     const items = {};
     for (let i = 1; i <= 10; i++) {
-      items[`Category ${i}`] = [];
+      const cat = `Category ${i}`;
+      items[cat] = [];
       for (let j = 1; j <= 10; j++) {
-        items[`Category ${i}`].push({ name: `Item ${i}-${j}`, price: (j + i).toFixed(2) });
+        items[cat].push({ name: `Item ${i}-${j}`, price: (j + i).toFixed(2), color: categoryColors[i % categoryColors.length] });
       }
     }
     let cart = [];
@@ -171,16 +181,17 @@
     function renderCategories() {
       const catDiv = document.getElementById('categoryButtons');
       catDiv.innerHTML = '';
-      Object.keys(items).forEach(category => {
+      Object.keys(items).forEach((category, index) => {
         const btn = document.createElement('button');
         btn.textContent = category;
         btn.className = 'category-btn';
-        btn.onclick = () => showItems(category);
+        btn.style.backgroundColor = categoryColors[index % categoryColors.length];
+        btn.onclick = () => showItems(category, categoryColors[index % categoryColors.length]);
         catDiv.appendChild(btn);
       });
     }
 
-    function showItems(category) {
+    function showItems(category, color) {
       currentCategory = category;
       const itemDiv = document.getElementById('itemButtons');
       itemDiv.innerHTML = '';
@@ -188,6 +199,7 @@
         const btn = document.createElement('button');
         btn.textContent = `${item.name} - $${item.price}`;
         btn.className = 'item-btn';
+        btn.style.backgroundColor = color;
         btn.onclick = () => addToCart(item);
         itemDiv.appendChild(btn);
       });
@@ -198,10 +210,10 @@
       const price = parseFloat(document.getElementById('manualPrice').value);
       if (!name || isNaN(price)) return alert('Enter valid name and price');
       if (!items['Manual']) items['Manual'] = [];
-      items['Manual'].push({ name, price });
+      items['Manual'].push({ name, price, color: "#666" });
       closeManualEntry();
       renderCategories();
-      showItems('Manual');
+      showItems('Manual', '#666');
     }
 
     function addToCart(item) {
@@ -209,13 +221,18 @@
       updateCart();
     }
 
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      updateCart();
+    }
+
     function updateCart() {
       const cartBody = document.getElementById('cartItems');
       cartBody.innerHTML = '';
       let total = 0;
-      cart.forEach(item => {
+      cart.forEach((item, index) => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td>${item.name}</td><td>$${parseFloat(item.price).toFixed(2)}</td>`;
+        row.innerHTML = `<td>${item.name}</td><td>$${parseFloat(item.price).toFixed(2)}</td><td><button class='remove-btn' onclick='removeFromCart(${index})'>×</button></td>`;
         cartBody.appendChild(row);
         total += parseFloat(item.price);
       });
