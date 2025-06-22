@@ -1,7 +1,42 @@
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Titanic POS</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+    }
+    header {
+      background-color: #34495e;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 2em;
+    }
+    .container {
+      display: flex;
+      padding: 20px;
+    }
+    .categories {
+      width: 60%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .cart {
+      width: 40%;
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
     .item-box,
     .modal-content {
-      margin-top: 20px;
       background: #fff;
       padding: 10px;
       border-radius: 6px;
@@ -28,135 +63,120 @@
       float: right;
       margin-top: -10px;
     }
-</style>
-<script>
-    let currentCategory = '';
-    let cart = [];
-    let discountAmount = 0;
-    let discountType = 'fixed';
-
-    function showItems(category, color) {
-      currentCategory = category;
-      const box = document.getElementById('itemBox');
-      const itemDiv = document.getElementById('itemButtons');
-      const title = document.getElementById('itemBoxTitle');
-      title.textContent = category;
-      itemDiv.innerHTML = '';
-      items[category].forEach(item => {
-        const btn = document.createElement('button');
-        btn.textContent = `${item.name} - $${item.price}`;
-        btn.className = 'item-btn';
-        btn.style.backgroundColor = color;
-        btn.onclick = () => addToCart(item);
-        itemDiv.appendChild(btn);
-      });
-      box.style.display = 'block';
-      requestAnimationFrame(() => box.classList.add('show'));
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
-
-    function closeItemBox() {
-      const box = document.getElementById('itemBox');
-      box.classList.remove('show');
-      setTimeout(() => box.style.display = 'none', 300);
+    .category-btn {
+      flex: 1 0 30%;
+      padding: 15px;
+      font-size: 1.1em;
+      color: white;
     }
-
-    function openManualEntry() {
-      const modal = document.getElementById('manualModal');
-      const content = modal.querySelector('.modal-content');
-      modal.style.display = 'flex';
-      requestAnimationFrame(() => content.classList.add('show'));
+    .item-btn {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
     }
-
-    function closeManualEntry() {
-      const modal = document.getElementById('manualModal');
-      const content = modal.querySelector('.modal-content');
-      content.classList.remove('show');
-      setTimeout(() => modal.style.display = 'none', 300);
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
     }
-
-    function checkout() {
-      const method = document.getElementById('paymentMethod').value;
-      if (cart.length === 0) return alert('Cart is empty');
-      if (method === 'Cash') {
-        const modal = document.getElementById('cashInputContainer');
-        const content = modal.querySelector('.modal-content');
-        modal.style.display = 'flex';
-        requestAnimationFrame(() => content.classList.add('show'));
-      } else {
-        generateReceipt('Card', 0);
-      }
+    table {
+      width: 100%;
+      border-collapse: collapse;
     }
-
-    function closeCashInput() {
-      const modal = document.getElementById('cashInputContainer');
-      const content = modal.querySelector('.modal-content');
-      content.classList.remove('show');
-      setTimeout(() => modal.style.display = 'none', 300);
+    td {
+      padding: 5px;
     }
-
-    function openDiscountPrompt() {
-      const type = prompt("Type 'amount' for fixed discount or '%' for percentage:");
-      if (!type) return;
-      const value = prompt("Enter discount value:");
-      const num = parseFloat(value);
-      if (!isNaN(num) && num > 0) {
-        discountAmount = num;
-        discountType = type.includes('%') ? 'percent' : 'fixed';
-        updateCart();
-      }
+    .remove-btn {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
     }
+  </style>
+</head>
+<body>
+  <header>The Titanic</header>
+  <div class="container">
+    <div class="categories" id="categoryContainer"></div>
+    <div class="cart">
+      <h3>Cart <button class="discount-btn" onclick="openDiscountPrompt()">＋</button></h3>
+      <table>
+        <tbody id="cartItems"></tbody>
+      </table>
+      <p>Total: <span id="totalAmount">$0.00</span></p>
+      <select id="paymentMethod">
+        <option value="Cash">Cash</option>
+        <option value="Card">Card</option>
+      </select>
+      <button onclick="checkout()">Checkout</button>
+    </div>
+  </div>
 
-    function resetDiscount() {
-      discountAmount = 0;
-      discountType = 'fixed';
-      updateCart();
-    }
+  <div class="item-box" id="itemBox" style="display:none">
+    <h4 id="itemBoxTitle"></h4>
+    <button onclick="closeItemBox()">✖</button>
+    <div id="itemButtons"></div>
+  </div>
 
-    function updateCart() {
-      const cartBody = document.getElementById('cartItems');
-      cartBody.innerHTML = '';
-      let total = 0;
-      cart.forEach((item, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${item.name}</td><td>$${parseFloat(item.price).toFixed(2)}</td><td><button class='remove-btn' onclick='removeFromCart(${index})'>×</button></td>`;
-        cartBody.appendChild(row);
-        total += parseFloat(item.price);
-      });
-      let discountValue = 0;
-      if (discountAmount > 0) {
-        discountValue = discountType === 'percent' ? total * (discountAmount / 100) : discountAmount;
-        const discountRow = document.createElement('tr');
-        discountRow.innerHTML = `<td><em>Discount (${discountType === 'percent' ? discountAmount + '%' : '$' + discountAmount.toFixed(2)})</em></td><td>-$${discountValue.toFixed(2)}</td><td><button class='remove-btn' onclick='resetDiscount()'>×</button></td>`;
-        cartBody.appendChild(discountRow);
-      }
-      document.getElementById('totalAmount').innerText = `$${Math.max(0, total - discountValue).toFixed(2)}`;
-    }
+  <div class="modal" id="manualModal">
+    <div class="modal-content">
+      <h3>Add Manual Item</h3>
+      <label>Name: <input type="text" id="manualName"></label><br>
+      <label>Price: <input type="number" id="manualPrice"></label><br>
+      <button onclick="addManualItem()">Add</button>
+      <button onclick="closeManualEntry()">Cancel</button>
+    </div>
+  </div>
 
-    function generateReceipt(method, change) {
-      const win = window.open('', '', 'width=400,height=600');
-      const now = new Date();
-      let content = `<h1 style='text-align:center;'>The Titanic</h1><hr><pre>`;
-      content += `Date: ${now.toLocaleDateString()}\nTime: ${now.toLocaleTimeString()}\n\nItems:\n`;
-      cart.forEach(item => content += `${item.name.padEnd(20)} $${parseFloat(item.price).toFixed(2)}\n`);
-      let total = cart.reduce((sum, i) => sum + parseFloat(i.price), 0);
-      let discountLine = '';
-      let discountValue = 0;
-      if (discountAmount > 0) {
-        discountValue = discountType === 'percent' ? total * (discountAmount / 100) : discountAmount;
-        discountLine = `Discount (${discountType === 'percent' ? discountAmount + '%' : '$' + discountAmount.toFixed(2)}): -$${discountValue.toFixed(2)}\n`;
-        total -= discountValue;
-      }
-      content += `\n${discountLine}`;
-      content += `Total:               $${Math.max(0, total).toFixed(2)}\nPayment Method:      ${method}\n`;
-      if (method === 'Cash') content += `Change:              $${change.toFixed(2)}\n`;
-      content += `</pre><hr><p style='text-align:center;'>Thank you!</p>`;
-      content += `<div style='text-align:center;'><button onclick='window.print()'>Print Receipt</button></div>`;
-      win.document.write(content);
-      win.document.close();
-      cart = [];
-      discountAmount = 0;
-      discountType = 'fixed';
-      updateCart();
+  <div class="modal" id="cashInputContainer">
+    <div class="modal-content">
+      <h3>Cash Received</h3>
+      <input type="number" id="cashGiven" placeholder="Enter amount">
+      <button onclick="processCash()">OK</button>
+      <button onclick="closeCashInput()">✖</button>
+    </div>
+  </div>
+
+  <script>
+    const items = {
+      Drinks: [
+        { name: 'Coffee', price: 4 },
+        { name: 'Tea', price: 3 }
+      ],
+      Food: [
+        { name: 'Sandwich', price: 6 },
+        { name: 'Burger', price: 8 }
+      ]
+    };
+
+    const colors = {
+      Drinks: '#3498db',
+      Food: '#e67e22'
+    };
+
+    const categoryContainer = document.getElementById('categoryContainer');
+    for (let cat in items) {
+      const btn = document.createElement('button');
+      btn.className = 'category-btn';
+      btn.textContent = cat;
+      btn.style.backgroundColor = colors[cat] || '#7f8c8d';
+      btn.onclick = () => showItems(cat, colors[cat]);
+      categoryContainer.appendChild(btn);
     }
-</script>
-<button class="discount-btn" onclick="openDiscountPrompt()">＋</button>
+  </script>
+</body>
+</html>
