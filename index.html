@@ -168,6 +168,33 @@
       Food: '#e67e22'
     };
 
+    function showItems(category, color) {
+      const box = document.getElementById('itemBox');
+      const itemDiv = document.getElementById('itemButtons');
+      const title = document.getElementById('itemBoxTitle');
+      title.textContent = category;
+      itemDiv.innerHTML = '';
+      items[category].forEach(item => {
+        const btn = document.createElement('button');
+        btn.textContent = `${item.name} - $${item.price}`;
+        btn.className = 'item-btn';
+        btn.style.backgroundColor = color;
+        itemDiv.appendChild(btn);
+      });
+      box.style.display = 'block';
+      requestAnimationFrame(() => box.classList.add('show'));
+    }
+
+    function closeItemBox() {
+      const box = document.getElementById('itemBox');
+      box.classList.remove('show');
+      setTimeout(() => box.style.display = 'none', 300);
+    }
+
+    function checkout() {
+      alert("Checkout button clicked. Implement payment logic here.");
+    }
+
     const categoryContainer = document.getElementById('categoryContainer');
     for (let cat in items) {
       const btn = document.createElement('button');
