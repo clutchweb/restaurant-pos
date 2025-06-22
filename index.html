@@ -2,110 +2,162 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simple POS Menu</title>
+  <title>POS System</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f4f4;
-    }
-    h1 {
-      color: #333;
-    }
-    input, button {
-      padding: 8px;
-      margin: 5px;
-    }
-    table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: left;
-    }
-    .total {
-      font-weight: bold;
-    }
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+    h1, h2 { color: #333; }
+    input, select, button { padding: 8px; margin: 5px; }
+    .section { margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    .receipt { white-space: pre-wrap; background: #fff; padding: 10px; border: 1px dashed #999; margin-top: 20px; }
   </style>
 </head>
 <body>
   <h1>POS Menu</h1>
-  <div>
-    <input id="itemName" type="text" placeholder="Item Name" />
-    <input id="itemPrice" type="number" placeholder="Price" />
-    <button onclick="addItem()">Add Item</button>
+
+  <div class="section">
+    <h2>Choose Category & Item</h2>
+    <select id="categorySelect" onchange="updateItems()">
+      <option value="">-- Select Category --</option>
+      <option value="Drinks">Drinks</option>
+      <option value="Food">Food</option>
+      <option value="Desserts">Desserts</option>
+    </select>
+
+    <select id="itemSelect"></select>
+    <button onclick="addSelectedItem()">Add</button>
   </div>
 
-  <table id="menuTable">
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Price ($)</th>
-      </tr>
-    </thead>
-    <tbody id="menuBody"></tbody>
-    <tfoot>
-      <tr>
-        <td class="total">Total</td>
-        <td class="total" id="totalPrice">$0.00</td>
-      </tr>
-    </tfoot>
-  </table>
+  <div class="section">
+    <h2>Manual Entry</h2>
+    <input id="manualName" type="text" placeholder="Item Name" />
+    <input id="manualPrice" type="number" placeholder="Price" />
+    <button onclick="addManualItem()">Add</button>
+  </div>
 
-  <div>
-    <input id="splitCount" type="number" placeholder="Split between how many people?" min="1"/>
-    <button onclick="splitTotal()">Split Bill</button>
-    <p id="splitResult"></p>
+  <div class="section">
+    <h2>Cart</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Price</th></tr></thead>
+      <tbody id="cartItems"></tbody>
+      <tfoot>
+        <tr><td><strong>Total</strong></td><td id="totalAmount">$0.00</td></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Checkout</h2>
+    <select id="paymentMethod">
+      <option value="Cash">Cash</option>
+      <option value="Card">Card</option>
+    </select>
+    <button onclick="checkout()">Checkout</button>
+  </div>
+
+  <div class="section">
+    <h2>Receipt</h2>
+    <div class="receipt" id="receipt" style="display:none;"></div>
   </div>
 
   <script>
-    let items = [];
+    const items = {
+      Drinks: [
+        { name: "Coke", price: 3.00 },
+        { name: "Water", price: 2.00 },
+        { name: "Juice", price: 4.00 }
+      ],
+      Food: [
+        { name: "Burger", price: 8.00 },
+        { name: "Pizza", price: 10.00 },
+        { name: "Fries", price: 4.50 }
+      ],
+      Desserts: [
+        { name: "Ice Cream", price: 5.00 },
+        { name: "Cake", price: 6.00 },
+        { name: "Pudding", price: 4.00 }
+      ]
+    };
 
-    function addItem() {
-      const name = document.getElementById("itemName").value.trim();
-      const price = parseFloat(document.getElementById("itemPrice").value);
+    let cart = [];
 
-      if (!name || isNaN(price) || price < 0) {
-        alert("Enter a valid item and price.");
-        return;
+    function updateItems() {
+      const cat = document.getElementById("categorySelect").value;
+      const itemSel = document.getElementById("itemSelect");
+      itemSel.innerHTML = "";
+      if (items[cat]) {
+        items[cat].forEach((item, index) => {
+          const opt = document.createElement("option");
+          opt.value = index;
+          opt.textContent = `${item.name} - $${item.price.toFixed(2)}`;
+          itemSel.appendChild(opt);
+        });
       }
-
-      items.push({ name, price });
-      updateMenu();
-      document.getElementById("itemName").value = '';
-      document.getElementById("itemPrice").value = '';
     }
 
-    function updateMenu() {
-      const menuBody = document.getElementById("menuBody");
-      menuBody.innerHTML = '';
-      let total = 0;
+    function addSelectedItem() {
+      const cat = document.getElementById("categorySelect").value;
+      const index = document.getElementById("itemSelect").value;
+      if (cat && index !== "") {
+        const item = items[cat][index];
+        cart.push(item);
+        updateCart();
+      }
+    }
 
-      items.forEach(item => {
+    function addManualItem() {
+      const name = document.getElementById("manualName").value.trim();
+      const price = parseFloat(document.getElementById("manualPrice").value);
+      if (!name || isNaN(price) || price <= 0) {
+        alert("Please enter a valid name and price.");
+        return;
+      }
+      cart.push({ name, price });
+      document.getElementById("manualName").value = '';
+      document.getElementById("manualPrice").value = '';
+      updateCart();
+    }
+
+    function updateCart() {
+      const cartBody = document.getElementById("cartItems");
+      cartBody.innerHTML = "";
+      let total = 0;
+      cart.forEach(item => {
         const row = document.createElement("tr");
         row.innerHTML = `<td>${item.name}</td><td>$${item.price.toFixed(2)}</td>`;
-        menuBody.appendChild(row);
+        cartBody.appendChild(row);
         total += item.price;
       });
-
-      document.getElementById("totalPrice").innerText = `$${total.toFixed(2)}`;
+      document.getElementById("totalAmount").innerText = `$${total.toFixed(2)}`;
     }
 
-    function splitTotal() {
-      const splitCount = parseInt(document.getElementById("splitCount").value);
-      const total = items.reduce((sum, item) => sum + item.price, 0);
-
-      if (isNaN(splitCount) || splitCount < 1) {
-        alert("Enter a valid number of people.");
+    function checkout() {
+      if (cart.length === 0) {
+        alert("Cart is empty!");
         return;
       }
 
-      const perPerson = total / splitCount;
-      document.getElementById("splitResult").innerText = `Each person pays: $${perPerson.toFixed(2)}`;
+      const payment = document.getElementById("paymentMethod").value;
+      const now = new Date();
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+
+      let receiptText = `========= RECEIPT =========\n`;
+      receiptText += `Date: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}\n`;
+      receiptText += `----------------------------\n`;
+      cart.forEach(item => {
+        receiptText += `${item.name.padEnd(20)} $${item.price.toFixed(2)}\n`;
+      });
+      receiptText += `----------------------------\n`;
+      receiptText += `Total:               $${total.toFixed(2)}\n`;
+      receiptText += `Payment Method:      ${payment}\n`;
+      receiptText += `============================`;
+
+      document.getElementById("receipt").style.display = "block";
+      document.getElementById("receipt").innerText = receiptText;
+
+      cart = [];
+      updateCart();
     }
   </script>
 </body>
