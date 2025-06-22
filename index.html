@@ -5,27 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Titanic POS</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
+    body, html {
       margin: 0;
       padding: 0;
+      font-family: Arial, sans-serif;
       background: #f4f4f4;
+      height: 100%;
+    }
+    #loginScreen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #34495e;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #loginScreen input {
+      padding: 10px;
+      font-size: 1.2em;
+      margin-top: 10px;
+    }
+    #mainApp {
+      display: none;
     }
     header {
       background-color: #34495e;
       color: white;
       padding: 20px;
       text-align: center;
-      font-size: 2em;
+      font-size: 3em;
+      font-family: 'Cursive';
     }
     .container {
       display: flex;
+      height: calc(100vh - 80px);
       padding: 20px;
     }
-    .categories {
+    .categories-wrapper {
       width: 60%;
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
+    }
+    .categories {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(4, auto);
       gap: 10px;
     }
     .cart {
@@ -33,35 +60,26 @@
       background: white;
       padding: 10px;
       border-radius: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border: 2px solid #ccc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
-    .item-box,
-    .modal-content {
+    .cart h3 {
+      font-size: 1.8em;
+      font-weight: bold;
+    }
+    .item-box {
       background: #fff;
       padding: 10px;
+      margin-top: 20px;
       border-radius: 6px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      position: relative;
-      opacity: 0;
-      transform: scale(0.95);
       transition: all 0.3s ease-in-out;
+      display: none;
     }
-    .item-box.show,
-    .modal-content.show {
+    .item-box.show {
       display: block !important;
-      opacity: 1;
-      transform: scale(1);
-    }
-    .discount-btn {
-      background-color: #2ecc71;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 1.2em;
-      cursor: pointer;
-      float: right;
-      margin-top: -10px;
     }
     button {
       padding: 10px;
@@ -70,7 +88,6 @@
       cursor: pointer;
     }
     .category-btn {
-      flex: 1 0 30%;
       padding: 15px;
       font-size: 1.1em;
       color: white;
@@ -91,6 +108,27 @@
       justify-content: center;
       align-items: center;
     }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      position: relative;
+    }
+    .modal-content button.close {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      font-size: 1em;
+      line-height: 1;
+      text-align: center;
+      cursor: pointer;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -106,67 +144,90 @@
       padding: 4px 8px;
       cursor: pointer;
     }
+    .payment-buttons button {
+      margin: 5px 5px 5px 0;
+      background: #2980b9;
+      color: white;
+    }
   </style>
 </head>
 <body>
-  <header>The Titanic</header>
-  <div class="container">
-    <div class="categories" id="categoryContainer"></div>
-    <div class="cart">
-      <h3>Cart <button class="discount-btn" onclick="openDiscountPrompt()">＋</button></h3>
-      <table>
-        <tbody id="cartItems"></tbody>
-      </table>
-      <p>Total: <span id="totalAmount">$0.00</span></p>
-      <select id="paymentMethod">
-        <option value="Cash">Cash</option>
-        <option value="Card">Card</option>
-      </select>
-      <button onclick="checkout()">Checkout</button>
+  <div id="loginScreen">
+    <h1>Enter Password</h1>
+    <input type="password" id="passwordInput" placeholder="Enter Password">
+    <button onclick="verifyPassword()">Login</button>
+  </div>
+
+  <div id="mainApp">
+    <header>The Titanic</header>
+    <div class="container">
+      <div class="categories-wrapper">
+        <div class="categories" id="categoryContainer"></div>
+        <div class="item-box" id="itemBox">
+          <h4 id="itemBoxTitle"></h4>
+          <button onclick="closeItemBox()">✖</button>
+          <div id="itemButtons"></div>
+        </div>
+      </div>
+      <div class="cart">
+        <h3>Cart</h3>
+        <table>
+          <tbody id="cartItems"></tbody>
+        </table>
+        <p>Total: <span id="totalAmount">$0.00</span></p>
+        <div class="payment-buttons">
+          <button onclick="selectPayment('Cash')">Cash</button>
+          <button onclick="selectPayment('Card')">Card</button>
+        </div>
+        <button onclick="checkout()">Checkout</button>
+        <button onclick="openManualEntry()">＋ Manual Item</button>
+      </div>
     </div>
-  </div>
 
-  <div class="item-box" id="itemBox" style="display:none">
-    <h4 id="itemBoxTitle"></h4>
-    <button onclick="closeItemBox()">✖</button>
-    <div id="itemButtons"></div>
-  </div>
-
-  <div class="modal" id="manualModal">
-    <div class="modal-content">
-      <h3>Add Manual Item</h3>
-      <label>Name: <input type="text" id="manualName"></label><br>
-      <label>Price: <input type="number" id="manualPrice"></label><br>
-      <button onclick="addManualItem()">Add</button>
-      <button onclick="closeManualEntry()">Cancel</button>
+    <div class="modal" id="manualModal">
+      <div class="modal-content">
+        <button class="close" onclick="closeManualEntry()">×</button>
+        <h3>Add Manual Item</h3>
+        <label>Name: <input type="text" id="manualName"></label><br>
+        <label>Price: <input type="number" id="manualPrice"></label><br>
+        <button onclick="addManualItem()">Add</button>
+      </div>
     </div>
-  </div>
 
-  <div class="modal" id="cashInputContainer">
-    <div class="modal-content">
-      <h3>Cash Received</h3>
-      <input type="number" id="cashGiven" placeholder="Enter amount">
-      <button onclick="processCash()">OK</button>
-      <button onclick="closeCashInput()">✖</button>
+    <div class="modal" id="cashModal">
+      <div class="modal-content">
+        <button class="close" onclick="closeCashModal()">×</button>
+        <h3>Enter Cash Given</h3>
+        <label>Amount: <input type="number" id="cashGiven"></label><br>
+        <button onclick="finalizeCashPayment()">Pay</button>
+      </div>
     </div>
   </div>
 
   <script>
-    const items = {
-      Drinks: [
-        { name: 'Coffee', price: 4 },
-        { name: 'Tea', price: 3 }
-      ],
-      Food: [
-        { name: 'Sandwich', price: 6 },
-        { name: 'Burger', price: 8 }
-      ]
-    };
+    const items = {};
+    const colors = ['#3498db', '#e67e22', '#1abc9c', '#9b59b6', '#e74c3c', '#2ecc71', '#f39c12', '#7f8c8d', '#c0392b', '#8e44ad', '#16a085', '#2980b9'];
 
-    const colors = {
-      Drinks: '#3498db',
-      Food: '#e67e22'
-    };
+    for (let i = 1; i <= 12; i++) {
+      const cat = 'Category ' + i;
+      items[cat] = [
+        { name: `Item ${i}A`, price: 5 + i },
+        { name: `Item ${i}B`, price: 6 + i }
+      ];
+    }
+
+    const cart = [];
+    let selectedPayment = "Card";
+
+    function verifyPassword() {
+      const input = document.getElementById('passwordInput').value;
+      if (input === '0000') {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+      } else {
+        alert('Incorrect Password');
+      }
+    }
 
     function showItems(category, color) {
       const box = document.getElementById('itemBox');
@@ -179,29 +240,112 @@
         btn.textContent = `${item.name} - $${item.price}`;
         btn.className = 'item-btn';
         btn.style.backgroundColor = color;
+        btn.onclick = () => addToCart(item);
         itemDiv.appendChild(btn);
       });
-      box.style.display = 'block';
-      requestAnimationFrame(() => box.classList.add('show'));
+      box.classList.add('show');
     }
 
     function closeItemBox() {
-      const box = document.getElementById('itemBox');
-      box.classList.remove('show');
-      setTimeout(() => box.style.display = 'none', 300);
+      document.getElementById('itemBox').classList.remove('show');
+    }
+
+    function addToCart(item) {
+      cart.push(item);
+      updateCart();
+    }
+
+    function updateCart() {
+      const cartBody = document.getElementById('cartItems');
+      cartBody.innerHTML = '';
+      let total = 0;
+      cart.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${item.name}</td><td>$${parseFloat(item.price).toFixed(2)}</td><td><button class='remove-btn' onclick='removeFromCart(${index})'>×</button></td>`;
+        cartBody.appendChild(row);
+        total += parseFloat(item.price);
+      });
+      document.getElementById('totalAmount').innerText = `$${total.toFixed(2)}`;
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      updateCart();
+    }
+
+    function openManualEntry() {
+      document.getElementById('manualModal').style.display = 'flex';
+    }
+
+    function closeManualEntry() {
+      document.getElementById('manualModal').style.display = 'none';
+    }
+
+    function addManualItem() {
+      const name = document.getElementById('manualName').value;
+      const price = parseFloat(document.getElementById('manualPrice').value);
+      if (!name || isNaN(price)) return alert('Enter valid name and price');
+      cart.push({ name, price });
+      updateCart();
+      closeManualEntry();
+    }
+
+    function selectPayment(method) {
+      selectedPayment = method;
+      if (method === 'Cash') {
+        document.getElementById('cashModal').style.display = 'flex';
+      }
+    }
+
+    function closeCashModal() {
+      document.getElementById('cashModal').style.display = 'none';
+    }
+
+    function finalizeCashPayment() {
+      const cash = parseFloat(document.getElementById('cashGiven').value);
+      let total = cart.reduce((sum, item) => sum + item.price, 0);
+      if (isNaN(cash) || cash < total) return alert('Insufficient cash');
+      const change = (cash - total).toFixed(2);
+      closeCashModal();
+      generateReceipt(`Cash (Change: $${change})`);
     }
 
     function checkout() {
-      alert("Checkout button clicked. Implement payment logic here.");
+      if (selectedPayment === 'Card') {
+        generateReceipt('Card');
+      } else if (selectedPayment === 'Cash') {
+        document.getElementById('cashModal').style.display = 'flex';
+      } else {
+        alert('Please select a payment method');
+      }
+    }
+
+    function generateReceipt(paymentDetails) {
+      let receiptWindow = window.open('', 'Receipt', 'width=400,height=600');
+      receiptWindow.document.write('<h2 style="font-size:2em;font-family:cursive">The Titanic</h2><hr>');
+      receiptWindow.document.write('<h4>Receipt</h4><table>');
+      let total = 0;
+      cart.forEach(item => {
+        receiptWindow.document.write(`<tr><td>${item.name}</td><td>$${item.price.toFixed(2)}</td></tr>`);
+        total += item.price;
+      });
+      receiptWindow.document.write(`</table><hr><p>Total: $${total.toFixed(2)}</p>`);
+      receiptWindow.document.write(`<p>Paid by: ${paymentDetails}</p>`);
+      receiptWindow.document.write(`<p>${new Date().toLocaleString()}</p>`);
+      receiptWindow.document.write('<button onclick="window.print()">Print</button>');
+      receiptWindow.document.close();
+      cart.length = 0;
+      updateCart();
     }
 
     const categoryContainer = document.getElementById('categoryContainer');
+    let i = 0;
     for (let cat in items) {
       const btn = document.createElement('button');
       btn.className = 'category-btn';
       btn.textContent = cat;
-      btn.style.backgroundColor = colors[cat] || '#7f8c8d';
-      btn.onclick = () => showItems(cat, colors[cat]);
+      btn.style.backgroundColor = colors[i++ % colors.length];
+      btn.onclick = () => showItems(cat, btn.style.backgroundColor);
       categoryContainer.appendChild(btn);
     }
   </script>
